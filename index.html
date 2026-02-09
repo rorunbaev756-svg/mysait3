@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4x4 Tic Tac Toe PRO</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h2 { margin: 15px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 70px);
+  gap: 8px;
+}
+
+.cell {
+  width: 70px;
+  height: 70px;
+  font-size: 36px;
+  background: #222;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.3s;
+}
+
+.cell:hover {
+  transform: scale(1.1);
+  background: #333;
+}
+
+.cell.X { color: #4fc3f7; }
+.cell.O { color: #ff5252; }
+
+.win {
+  background: #2e7d32 !important;
+}
+
+button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🔥 4×4 Крестики-нолики PRO</h2>
+<p>Ты — ❌ | Компьютер — ⭕<br>Макс. 3 фигуры — старые исчезают</p>
+
+<div class="grid" id="grid"></div>
+<button onclick="resetGame()">🔄 Перезапуск</button>
+
+<audio id="clickSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+<audio id="winSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+
+<script>
+const SIZE = 4;
+const MAX_PIECES = 3;
+let board = Array(16).fill("");
+let history = { X: [], O: [] };
+let gameOver = false;
+
+const grid = document.getElementById("grid");
+const clickSound = document.getElementById("clickSound");
+const winSound = document.getElementById("winSound");
+
+function draw() {
+  grid.innerHTML = "";
+  board.forEach((v, i) => {
+    const d = document.createElement("div");
+    d.className = "cell " + v;
+    d.textContent = v;
+    d.onclick = () => playerMove(i);
+    grid.appendChild(d);
+  });
+}
+
+function playerMove(i) {
+  if (board[i] || gameOver) return;
+  makeMove(i, "X");
+  if (!checkEnd("X")) setTimeout(aiMove, 300);
+}
+
+function makeMove(i, p) {
+  clickSound.play();
+  board[i] = p;
+  history[p].push(i);
+  if (history[p].length > MAX_PIECES) {
+    const old = history[p].shift();
+    board[old] = "";
+  }
+  draw();
+}
+
+function aiMove() {
+  let best = minimax(board, 3, true).index;
+  makeMove(best, "O");
+  checkEnd("O");
+}
+
+function checkEnd(p) {
+  const win = checkWin(p);
+  if (win) {
+    gameOver = true;
+    winSound.play();
+    win.forEach(i => grid.children[i].classList.add("win"));
+    return true;
+  }
+  return false;
+}
+
+function checkWin(p) {
+  const lines = [];
+
+  for (let r = 0; r < SIZE; r++)
+    lines.push([...Array(SIZE)].map((_,c)=>r*SIZE+c));
+
+  for (let c = 0; c < SIZE; c++)
+    lines.push([...Array(SIZE)].map((_,r)=>r*SIZE+c));
+
+  lines.push([0,5,10,15],[3,6,9,12]);
+
+  for (let l of lines)
+    if (l.every(i => board[i] === p)) return l;
+
+  return null;
+}
+
+function minimax(b, depth, isMax) {
+  if (checkWin("O")) return { score: 10 };
+  if (checkWin("X")) return { score: -10 };
+  if (depth === 0) return { score: 0 };
+
+  let best = { score: isMax ? -Infinity : Infinity };
+
+  b.forEach((v,i)=>{
+    if (!v) {
+      b[i] = isMax ? "O" : "X";
+      let score = minimax(b, depth-1, !isMax).score;
+      b[i] = "";
+      if (isMax && score > best.score) best = { score, index: i };
+      if (!isMax && score < best.score) best = { score, index: i };
+    }
+  });
+  return best;
+}
+
+function resetGame() {
+  board.fill("");
+  history = { X: [], O: [] };
+  gameOver = false;
+  draw();
+}
+
+draw();
+</script>
+
+</body>
+</html>
